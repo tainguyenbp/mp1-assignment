@@ -221,7 +221,7 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 	 */
 	assert(size >= sizeof(MessageHdr));
 	MessageHdr* msg = (MessageHd*) data;
-	Address *src_addr = (Address+1);
+	 Address *src_addr = (Address+1);
 }
 
 /**
@@ -236,6 +236,20 @@ void MP1Node::nodeLoopOps() {
 	/*
 	 * Your code goes here
 	 */
+	int timeout = 5;
+	stringstream ss;
+	for(vector < MemberListEntry > :: iterator it = memberNode -> memberList.begin(); it != memberNode -> memberList.end(); it++)
+	{	
+		if(par -> getcurrtime() - it -> timestamp > timeout)
+		{
+			Address addr = AddressFromMLE(&(*it));
+			ss << "timing out " << addr.getAddress();
+			log -> LOG(&memberNode -> addr, ss.str().c_str());
+			ss.str("");
+			vector<MemberListEntry>::iterator next_it = it;
+			vector<MemberListEntry>::iterator next_next_it= it + 1;
+		}
+	}
 
     return;
 }
