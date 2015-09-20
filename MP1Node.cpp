@@ -248,6 +248,14 @@ void MP1Node::nodeLoopOps() {
 			ss.str("");
 			vector<MemberListEntry>::iterator next_it = it;
 			vector<MemberListEntry>::iterator next_next_it= it + 1;
+			for(next_it = it; next_next_it != memberNode -> memberList.end(); next_it++, next_next_it++)
+			{
+				*next_it = *next_next_it;
+			}
+			memberNode -> memberList.resize(memberNode -> memberList.size()-1);
+			it = it-1;
+			LogMemberList();
+			log -> LogNodeRemove(&memberNode -> addr, &addr);
 		}
 	}
 
