@@ -258,7 +258,9 @@ void MP1Node::nodeLoopOps() {
 			log -> LogNodeRemove(&memberNode -> addr, &addr);
 		}
 	}
-
+	//hoan thanh ham voidMP1Node::nodeLoopOPs
+	UpdateMemberList(&memberNode -> addr, ++memberNode -> heartbeat);
+	SendHBSomewhere(&memberNode ->addr, memberNode -> heartbeat)
     return;
 }
 
