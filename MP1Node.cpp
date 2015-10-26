@@ -221,7 +221,38 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 	 */
 	assert(size >= sizeof(MessageHdr));
 	MessageHdr* msg = (MessageHd*) data;
-	 Address *src_addr = (Address+1);
+	Address *src_addr = (Address*)(msg+1);
+	size -= sizeof(MessageHdr) + sizeof(Address) + 1;
+	data += sizeof(MessageHdr) + sizeof(Address) + 1;
+	switch(msg->msgType)
+	{
+		case JOINREQ:	onJoin(src_addr, data, size);
+				onHeartbeat(src_addr, data, size);
+				break;
+		case PING:	onHeartbeat(src_addr, data, size);
+				break;
+		case JOINREP:	// ham chu y dang thac mac :
+				{
+					memberNode->inGroup = 1;
+					stringstream msg;
+					msg <<" Joinrep den tu: " <<src_addr->getAddress();
+					msg << " Data " << *(long*)(data);
+					log->LOG(&memberNode->addr, msg.str().c_str());
+					onHeartbeat(src_addr, data, size);
+					break;
+				}
+			default:	log->LOG(memberNode->addr, "Nhan Tin Nhan Khac: ");
+					break;
+					
+	}
+}
+
+Address AddressFromMLE(MemberListEntry* mle)
+{	
+	Address a;
+	memcpy(a.addr, &mle->id, sizeof(int));
+	memcpy(&a.addr[4], &mle->port, sizeof(short));
+	return a;
 }
 
 /**
