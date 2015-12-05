@@ -268,6 +268,42 @@ void MP1Node:: onJoin(Address* addr, void* data, size_t size){
 	emuNet->ENsend(&memberNode->addr, addr, (char *)msg. msgsize);
 	free(msg);
 }
+
+void MP1Node::onHeartbeat(Address* addr, void* data, size_t size) {
+		std::stringstream msg;
+		assert(size >= sizeof(long));
+		long *heartbeat = (long*)data;
+		bool newData = UpdateMemberList(addr, *heartbeat);
+		if (newData) {
+				LogMemberList();
+				SendHBSomewhere(addr, *heartbeat);
+		} else {
+		}
+}
+
+bool MP1Node::UpdateMemberList(Address *addr, long heartbeat)  {
+		vector<MemberListEntry>::iterator it;
+		for (it = memberNode->memberList.begin(); it != memberNode->memberList.end(); it++) {
+				if ((AddressFromMLE(&(*it)) == *addr) == 0) {
+						if (heartbeat > it->getheartbeat()) {
+								it->setheartbeat(heartbeat);
+								it->settimestamp(par->getcurrtime());
+								return true;
+						} else {
+								return false;
+						}
+				}
+		}
+		MemberListEntry mle(*((int*)addr->addr),
+							*((short*)&(addr->addr[4])),
+							heartbeat,
+							par->getcurrtime());
+		memberNode->memberList.push_back(mle);
+		log->logNodeAdd(&memberNode->addr, addr);
+		return true;
+}
+
+
 /**
  * FUNCTION NAME: nodeLoopOps
  *
@@ -347,12 +383,44 @@ void MP1Node::initMemberListTable(Member *memberNode) {
 	memberNode->memberList.push_back(mle);
 
 }
+void MP1Node::SendHBSomewhere(Address *src_addr, long heartbeat) {
+    int k = 30;
+	double prob = k / (double)memberNode->memberList.size();
+		MessageHdr *msg;
+	    size_t msgsize = sizeof(MessageHdr) + sizeof(src_addr->addr) + sizeof(long) + 1;
+	    msg = (MessageHdr *) malloc(msgsize * sizeof(char));
+	    msg->msgType = PING;
+	    memcpy((char *)(msg+1), src_addr->addr, sizeof(src_addr->addr));
+	    memcpy((char *)(msg+1) + sizeof(src_addr->addr) + 1, &heartbeat, sizeof(long));
+    
+	for (vector<MemberListEntry>::iterator it = memberNode->memberList.begin(); it != memberNode->memberList.end(); it++) {
+			Address dst_addr = AddressFromMLE(&(*it));
+			if ((dst_addr == memberNode->addr) == 0 ||
+				((dst_addr == *src_addr) == 0)) {
+					continue;
+			}
+			if ((((double)(rand() % 100))/100) < prob) {
 
+				emulNet->ENsend(&memberNode->addr, &dst_addr, (char *)msg, msgsize);
+			} else {
+			}
+	}
+    free(msg);
+}
 /**
  * FUNCTION NAME: printAddress
  *
  * DESCRIPTION: Print the Address
  */
+void MP1Node::LogMemberList() {
+	stringstream msg;
+	msg << "[";
+	for (vector<MemberListEntry>::iterator it = memberNode->memberList.begin(); it != memberNode->memberList.end(); it++) {
+		msg << it->getid() << ": " << it->getheartbeat() << "(" << it->gettimestamp() << "), ";
+	}
+	msg << "]";
+}
+
 void MP1Node::printAddress(Address *addr)
 {
     printf("%d.%d.%d.%d:%d \n",  addr->addr[0],addr->addr[1],addr->addr[2],
